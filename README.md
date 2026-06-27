@@ -6,15 +6,24 @@ A browser-based payroll system for Techwiz Company. It runs as a static site, so
 
 - Payroll dashboard with gross pay, net pay, deductions, and employee count
 - Employee register with search and selectable rows
+- Admin login screen to limit payroll access
+- Add, edit, and delete employees
 - Salary calculator for salary, allowances, overtime, bonus, tax, and benefits
+- Department payroll summary cards
 - Paid or pending payroll status
 - Printable payslip
 - CSV payroll export
+- Demo data reset
 - Local browser storage for saved payroll edits
 
 ## Run Locally
 
 Open `index.html` in a browser.
+
+Demo admin login:
+
+- Username: `admin`
+- Password: `techwiz123`
 
 ## Deploy With GitHub Pages
 

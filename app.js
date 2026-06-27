@@ -3,6 +3,11 @@ const currency = new Intl.NumberFormat("en-US", {
   currency: "USD",
 });
 
+const adminCredentials = {
+  username: "admin",
+  password: "techwiz123",
+};
+
 const defaultEmployees = [
   {
     id: "tw-001",
@@ -59,14 +64,24 @@ const defaultEmployees = [
 ];
 
 const storageKey = "techwiz-payroll-employees";
+const sessionKey = "techwiz-payroll-authenticated";
 const savedEmployees = JSON.parse(localStorage.getItem(storageKey) || "null");
 let employees = Array.isArray(savedEmployees) ? savedEmployees : defaultEmployees;
-let selectedEmployeeId = employees[0]?.id;
+let selectedEmployeeId = employees[0]?.id || null;
 
 const elements = {
+  appShell: document.querySelector(".app-shell"),
+  loginScreen: document.querySelector("#loginScreen"),
+  loginForm: document.querySelector("#loginForm"),
+  loginUsername: document.querySelector("#loginUsername"),
+  loginPassword: document.querySelector("#loginPassword"),
+  loginError: document.querySelector("#loginError"),
+  logoutButton: document.querySelector("#logoutButton"),
   employeeRows: document.querySelector("#employeeRows"),
   employeeSelect: document.querySelector("#employeeSelect"),
   employeeSearch: document.querySelector("#employeeSearch"),
+  employeeForm: document.querySelector("#employeeForm"),
+  departmentSummary: document.querySelector("#departmentSummary"),
   payPeriod: document.querySelector("#payPeriod"),
   basicSalary: document.querySelector("#basicSalary"),
   allowances: document.querySelector("#allowances"),
@@ -76,7 +91,9 @@ const elements = {
   benefits: document.querySelector("#benefits"),
   paidStatus: document.querySelector("#paidStatus"),
   calculator: document.querySelector("#calculator"),
+  deleteEmployee: document.querySelector("#deleteEmployee"),
   exportCsv: document.querySelector("#exportCsv"),
+  resetData: document.querySelector("#resetData"),
   printPayslip: document.querySelector("#printPayslip"),
   metricPayroll: document.querySelector("#metricPayroll"),
   metricNet: document.querySelector("#metricNet"),
@@ -87,6 +104,7 @@ const elements = {
   payslipDepartment: document.querySelector("#payslipDepartment"),
   payslipGross: document.querySelector("#payslipGross"),
   payslipDeductions: document.querySelector("#payslipDeductions"),
+  payslipBreakdown: document.querySelector("#payslipBreakdown"),
   payslipNet: document.querySelector("#payslipNet"),
   paidBadge: document.querySelector("#paidBadge"),
 };
@@ -111,10 +129,33 @@ function setCurrentMonth() {
 }
 
 function getSelectedEmployee() {
-  return employees.find((employee) => employee.id === selectedEmployeeId) || employees[0];
+  return employees.find((employee) => employee.id === selectedEmployeeId) || employees[0] || null;
+}
+
+function setAuthState(isAuthenticated) {
+  sessionStorage.setItem(sessionKey, String(isAuthenticated));
+  elements.loginScreen.classList.toggle("hidden", isAuthenticated);
+  elements.appShell.classList.toggle("locked", !isAuthenticated);
+  if (isAuthenticated) {
+    elements.loginError.textContent = "";
+    render();
+  }
+}
+
+function createEmployeeId() {
+  const nextNumber = employees.length + 1;
+  const randomPart = Math.floor(Math.random() * 900 + 100);
+  return `tw-${String(nextNumber).padStart(3, "0")}-${randomPart}`;
 }
 
 function renderEmployeeOptions() {
+  if (!employees.length) {
+    elements.employeeSelect.innerHTML = "<option>No employees</option>";
+    elements.employeeSelect.disabled = true;
+    return;
+  }
+
+  elements.employeeSelect.disabled = false;
   elements.employeeSelect.innerHTML = employees
     .map((employee) => `<option value="${employee.id}">${employee.name}</option>`)
     .join("");
@@ -128,17 +169,29 @@ function renderEmployees() {
     return record.includes(query);
   });
 
+  if (!visibleEmployees.length) {
+    elements.employeeRows.innerHTML = `
+      <tr>
+        <td colspan="7" class="empty-cell">No employees found.</td>
+      </tr>
+    `;
+    return;
+  }
+
   elements.employeeRows.innerHTML = visibleEmployees
     .map((employee) => {
       const pay = calculatePay(employee);
       const selectedClass = employee.id === selectedEmployeeId ? " class=\"selected\"" : "";
+      const statusClass = employee.paid ? "paid" : "";
       return `
         <tr data-id="${employee.id}"${selectedClass}>
-          <td><strong>${employee.name}</strong></td>
+          <td><strong>${employee.name}</strong><small>${employee.id}</small></td>
           <td>${employee.role}</td>
           <td>${employee.department}</td>
           <td>${currency.format(pay.gross)}</td>
           <td>${currency.format(pay.net)}</td>
+          <td><span class="status-badge ${statusClass}">${employee.paid ? "Paid" : "Pending"}</span></td>
+          <td><button class="row-action" type="button" data-edit="${employee.id}">Edit</button></td>
         </tr>
       `;
     })
@@ -163,7 +216,50 @@ function renderMetrics() {
   elements.metricEmployees.textContent = String(employees.length);
 }
 
+function renderDepartmentSummary() {
+  const departments = employees.reduce((summary, employee) => {
+    const pay = calculatePay(employee);
+    if (!summary[employee.department]) {
+      summary[employee.department] = { employees: 0, net: 0 };
+    }
+    summary[employee.department].employees += 1;
+    summary[employee.department].net += pay.net;
+    return summary;
+  }, {});
+
+  elements.departmentSummary.innerHTML = Object.entries(departments)
+    .map(([department, summary]) => `
+      <article class="department-card">
+        <span>${department}</span>
+        <strong>${currency.format(summary.net)}</strong>
+        <small>${summary.employees} employee${summary.employees === 1 ? "" : "s"}</small>
+      </article>
+    `)
+    .join("");
+}
+
+function clearPayrollFields() {
+  elements.basicSalary.value = "";
+  elements.allowances.value = "";
+  elements.overtime.value = "";
+  elements.bonus.value = "";
+  elements.tax.value = "";
+  elements.benefits.value = "";
+  elements.paidStatus.checked = false;
+}
+
 function renderCalculator(employee) {
+  if (!employee) {
+    clearPayrollFields();
+    elements.calculator.querySelectorAll("input, select, button").forEach((control) => {
+      control.disabled = true;
+    });
+    return;
+  }
+
+  elements.calculator.querySelectorAll("input, select, button").forEach((control) => {
+    control.disabled = false;
+  });
   elements.employeeSelect.value = employee.id;
   elements.basicSalary.value = employee.basicSalary;
   elements.allowances.value = employee.allowances;
@@ -175,12 +271,26 @@ function renderCalculator(employee) {
 }
 
 function renderPayslip(employee) {
+  if (!employee) {
+    elements.payslipName.textContent = "No employee selected";
+    elements.payslipRole.textContent = "-";
+    elements.payslipDepartment.textContent = "-";
+    elements.payslipGross.textContent = currency.format(0);
+    elements.payslipDeductions.textContent = currency.format(0);
+    elements.payslipBreakdown.textContent = currency.format(0);
+    elements.payslipNet.textContent = currency.format(0);
+    elements.paidBadge.textContent = "Pending";
+    elements.paidBadge.classList.remove("paid");
+    return;
+  }
+
   const pay = calculatePay(employee);
   elements.payslipName.textContent = employee.name;
   elements.payslipRole.textContent = employee.role;
   elements.payslipDepartment.textContent = employee.department;
   elements.payslipGross.textContent = currency.format(pay.gross);
   elements.payslipDeductions.textContent = currency.format(pay.deductions);
+  elements.payslipBreakdown.textContent = `${currency.format(employee.tax)} + ${currency.format(employee.benefits)}`;
   elements.payslipNet.textContent = currency.format(pay.net);
   elements.paidBadge.textContent = employee.paid ? "Paid" : "Pending";
   elements.paidBadge.classList.toggle("paid", Boolean(employee.paid));
@@ -188,10 +298,11 @@ function renderPayslip(employee) {
 
 function render() {
   const selectedEmployee = getSelectedEmployee();
-  selectedEmployeeId = selectedEmployee.id;
+  selectedEmployeeId = selectedEmployee?.id || null;
   renderEmployeeOptions();
   renderEmployees();
   renderMetrics();
+  renderDepartmentSummary();
   renderCalculator(selectedEmployee);
   renderPayslip(selectedEmployee);
 }
@@ -211,6 +322,42 @@ function updateSelectedEmployee() {
     paid: elements.paidStatus.checked,
   };
 
+  persistEmployees();
+  render();
+}
+
+function addEmployee() {
+  const formData = new FormData(elements.employeeForm);
+  const employee = {
+    id: createEmployeeId(),
+    name: elements.employeeForm.querySelector("#newName").value.trim(),
+    role: elements.employeeForm.querySelector("#newRole").value.trim(),
+    department: elements.employeeForm.querySelector("#newDepartment").value.trim(),
+    basicSalary: Number(formData.get("newBasicSalary") || elements.employeeForm.querySelector("#newBasicSalary").value || 0),
+    allowances: Number(elements.employeeForm.querySelector("#newAllowances").value || 0),
+    overtime: Number(elements.employeeForm.querySelector("#newOvertime").value || 0),
+    bonus: Number(elements.employeeForm.querySelector("#newBonus").value || 0),
+    tax: Number(elements.employeeForm.querySelector("#newTax").value || 0),
+    benefits: Number(elements.employeeForm.querySelector("#newBenefits").value || 0),
+    paid: false,
+  };
+
+  employees.push(employee);
+  selectedEmployeeId = employee.id;
+  persistEmployees();
+  elements.employeeForm.reset();
+  render();
+  document.querySelector("#calculator").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function deleteSelectedEmployee() {
+  const selectedEmployee = getSelectedEmployee();
+  if (!selectedEmployee) return;
+  const confirmed = window.confirm(`Delete ${selectedEmployee.name} from payroll?`);
+  if (!confirmed) return;
+
+  employees = employees.filter((employee) => employee.id !== selectedEmployee.id);
+  selectedEmployeeId = employees[0]?.id || null;
   persistEmployees();
   render();
 }
@@ -244,11 +391,36 @@ function exportPayrollCsv() {
   URL.revokeObjectURL(link.href);
 }
 
+elements.loginForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const username = elements.loginUsername.value.trim();
+  const password = elements.loginPassword.value;
+
+  if (username === adminCredentials.username && password === adminCredentials.password) {
+    setAuthState(true);
+    return;
+  }
+
+  elements.loginError.textContent = "Incorrect admin username or password.";
+});
+
+elements.logoutButton.addEventListener("click", () => {
+  sessionStorage.removeItem(sessionKey);
+  setAuthState(false);
+  elements.loginPassword.value = "";
+});
+
 elements.employeeRows.addEventListener("click", (event) => {
+  const actionButton = event.target.closest("[data-edit]");
   const row = event.target.closest("tr[data-id]");
   if (!row) return;
-  selectedEmployeeId = row.dataset.id;
+
+  selectedEmployeeId = actionButton?.dataset.edit || row.dataset.id;
   render();
+
+  if (actionButton) {
+    document.querySelector("#calculator").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 });
 
 elements.employeeSelect.addEventListener("change", (event) => {
@@ -258,13 +430,27 @@ elements.employeeSelect.addEventListener("change", (event) => {
 
 elements.employeeSearch.addEventListener("input", renderEmployees);
 
+elements.employeeForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  addEmployee();
+});
+
 elements.calculator.addEventListener("submit", (event) => {
   event.preventDefault();
   updateSelectedEmployee();
 });
 
+elements.deleteEmployee.addEventListener("click", deleteSelectedEmployee);
 elements.exportCsv.addEventListener("click", exportPayrollCsv);
 elements.printPayslip.addEventListener("click", () => window.print());
+elements.resetData.addEventListener("click", () => {
+  const confirmed = window.confirm("Reset payroll data back to the Techwiz demo employees?");
+  if (!confirmed) return;
+  employees = structuredClone(defaultEmployees);
+  selectedEmployeeId = employees[0].id;
+  persistEmployees();
+  render();
+});
 
 setCurrentMonth();
-render();
+setAuthState(sessionStorage.getItem(sessionKey) === "true");

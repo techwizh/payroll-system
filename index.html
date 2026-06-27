@@ -7,6 +7,29 @@
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
+    <section id="loginScreen" class="login-screen">
+      <form id="loginForm" class="login-panel">
+        <div class="brand-lockup">
+          <div class="brand-mark">T</div>
+          <div>
+            <p class="eyebrow">Techwiz Company</p>
+            <h1>Payroll access</h1>
+          </div>
+        </div>
+        <label>
+          Admin username
+          <input id="loginUsername" type="text" autocomplete="username" required>
+        </label>
+        <label>
+          Password
+          <input id="loginPassword" type="password" autocomplete="current-password" required>
+        </label>
+        <p id="loginError" class="form-error" role="alert"></p>
+        <button class="button primary" type="submit">Login</button>
+        <p class="login-hint">Demo admin: <strong>admin</strong> / <strong>techwiz123</strong></p>
+      </form>
+    </section>
+
     <div class="app-shell">
       <aside class="sidebar">
         <div class="brand-lockup">
@@ -20,6 +43,7 @@
         <nav class="nav-list" aria-label="Payroll sections">
           <a class="nav-item active" href="#dashboard">Dashboard</a>
           <a class="nav-item" href="#employees">Employees</a>
+          <a class="nav-item" href="#adminTools">Admin</a>
           <a class="nav-item" href="#calculator">Calculator</a>
           <a class="nav-item" href="#payslip">Payslip</a>
         </nav>
@@ -27,6 +51,7 @@
         <div class="period-card">
           <label for="payPeriod">Pay period</label>
           <input id="payPeriod" type="month">
+          <button id="logoutButton" class="button ghost dark-button" type="button">Logout</button>
         </div>
       </aside>
 
@@ -38,6 +63,7 @@
           </div>
           <div class="toolbar-actions">
             <button id="exportCsv" class="button ghost" type="button">Export CSV</button>
+            <button id="resetData" class="button ghost" type="button">Reset demo data</button>
             <button id="printPayslip" class="button primary" type="button">Print payslip</button>
           </div>
         </section>
@@ -61,6 +87,8 @@
           </article>
         </section>
 
+        <section id="departmentSummary" class="department-grid" aria-label="Department payroll summary"></section>
+
         <section class="content-grid">
           <div id="employees" class="panel employee-panel">
             <div class="panel-heading">
@@ -79,6 +107,8 @@
                     <th>Department</th>
                     <th>Gross</th>
                     <th>Net</th>
+                    <th>Status</th>
+                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody id="employeeRows"></tbody>
@@ -131,8 +161,67 @@
                 <input id="paidStatus" type="checkbox">
                 Mark as paid
               </label>
+              <button id="deleteEmployee" class="button danger" type="button">Delete employee</button>
               <button class="button primary" type="submit">Save payroll</button>
             </div>
+          </form>
+        </section>
+
+        <section id="adminTools" class="panel admin-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Admin tools</p>
+              <h3>Add employee</h3>
+            </div>
+          </div>
+
+          <form id="employeeForm" class="employee-form">
+            <div class="field-grid wide-grid">
+              <label>
+                Full name
+                <input id="newName" type="text" required>
+              </label>
+              <label>
+                Role
+                <input id="newRole" type="text" required>
+              </label>
+              <label>
+                Department
+                <input id="newDepartment" type="text" list="departmentList" required>
+                <datalist id="departmentList">
+                  <option value="Product"></option>
+                  <option value="Platform"></option>
+                  <option value="Design"></option>
+                  <option value="Quality"></option>
+                  <option value="Operations"></option>
+                </datalist>
+              </label>
+              <label>
+                Basic salary
+                <input id="newBasicSalary" type="number" min="0" step="100" required>
+              </label>
+              <label>
+                Allowances
+                <input id="newAllowances" type="number" min="0" step="50" value="0">
+              </label>
+              <label>
+                Overtime
+                <input id="newOvertime" type="number" min="0" step="25" value="0">
+              </label>
+              <label>
+                Bonus
+                <input id="newBonus" type="number" min="0" step="50" value="0">
+              </label>
+              <label>
+                Tax
+                <input id="newTax" type="number" min="0" step="25" value="0">
+              </label>
+              <label>
+                Benefits
+                <input id="newBenefits" type="number" min="0" step="25" value="0">
+              </label>
+            </div>
+            <button class="button primary" type="submit">Add employee</button>
           </form>
         </section>
 
@@ -161,6 +250,10 @@
             <div>
               <span>Deductions</span>
               <strong id="payslipDeductions">$0.00</strong>
+            </div>
+            <div>
+              <span>Tax + benefits</span>
+              <strong id="payslipBreakdown">$0.00</strong>
             </div>
             <div class="net-card">
               <span>Net pay</span>

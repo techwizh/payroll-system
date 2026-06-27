@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Techwiz Payroll</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-lockup">
+          <div class="brand-mark">T</div>
+          <div>
+            <p class="eyebrow">Techwiz Company</p>
+            <h1>Payroll</h1>
+          </div>
+        </div>
+
+        <nav class="nav-list" aria-label="Payroll sections">
+          <a class="nav-item active" href="#dashboard">Dashboard</a>
+          <a class="nav-item" href="#employees">Employees</a>
+          <a class="nav-item" href="#calculator">Calculator</a>
+          <a class="nav-item" href="#payslip">Payslip</a>
+        </nav>
+
+        <div class="period-card">
+          <label for="payPeriod">Pay period</label>
+          <input id="payPeriod" type="month">
+        </div>
+      </aside>
+
+      <main>
+        <section id="dashboard" class="toolbar">
+          <div>
+            <p class="eyebrow">Payroll command center</p>
+            <h2>Techwiz payroll system</h2>
+          </div>
+          <div class="toolbar-actions">
+            <button id="exportCsv" class="button ghost" type="button">Export CSV</button>
+            <button id="printPayslip" class="button primary" type="button">Print payslip</button>
+          </div>
+        </section>
+
+        <section class="metrics-grid" aria-label="Payroll summary">
+          <article class="metric-card">
+            <span>Total payroll</span>
+            <strong id="metricPayroll">$0.00</strong>
+          </article>
+          <article class="metric-card">
+            <span>Net payable</span>
+            <strong id="metricNet">$0.00</strong>
+          </article>
+          <article class="metric-card">
+            <span>Employees</span>
+            <strong id="metricEmployees">0</strong>
+          </article>
+          <article class="metric-card">
+            <span>Total deductions</span>
+            <strong id="metricDeductions">$0.00</strong>
+          </article>
+        </section>
+
+        <section class="content-grid">
+          <div id="employees" class="panel employee-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Employee register</p>
+                <h3>Team payroll</h3>
+              </div>
+              <input id="employeeSearch" class="search-input" type="search" placeholder="Search employees">
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Role</th>
+                    <th>Department</th>
+                    <th>Gross</th>
+                    <th>Net</th>
+                  </tr>
+                </thead>
+                <tbody id="employeeRows"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <form id="calculator" class="panel calculator-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Run payroll</p>
+                <h3>Salary calculator</h3>
+              </div>
+            </div>
+
+            <label>
+              Employee
+              <select id="employeeSelect"></select>
+            </label>
+
+            <div class="field-grid">
+              <label>
+                Basic salary
+                <input id="basicSalary" type="number" min="0" step="100">
+              </label>
+              <label>
+                Allowances
+                <input id="allowances" type="number" min="0" step="50">
+              </label>
+              <label>
+                Overtime
+                <input id="overtime" type="number" min="0" step="25">
+              </label>
+              <label>
+                Bonus
+                <input id="bonus" type="number" min="0" step="50">
+              </label>
+              <label>
+                Tax
+                <input id="tax" type="number" min="0" step="25">
+              </label>
+              <label>
+                Benefits
+                <input id="benefits" type="number" min="0" step="25">
+              </label>
+            </div>
+
+            <div class="toggle-row">
+              <label class="switch-line">
+                <input id="paidStatus" type="checkbox">
+                Mark as paid
+              </label>
+              <button class="button primary" type="submit">Save payroll</button>
+            </div>
+          </form>
+        </section>
+
+        <section id="payslip" class="panel payslip-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Employee payslip</p>
+              <h3 id="payslipName">Select an employee</h3>
+            </div>
+            <span id="paidBadge" class="status-badge">Pending</span>
+          </div>
+
+          <div class="payslip-grid">
+            <div>
+              <span>Role</span>
+              <strong id="payslipRole">-</strong>
+            </div>
+            <div>
+              <span>Department</span>
+              <strong id="payslipDepartment">-</strong>
+            </div>
+            <div>
+              <span>Gross pay</span>
+              <strong id="payslipGross">$0.00</strong>
+            </div>
+            <div>
+              <span>Deductions</span>
+              <strong id="payslipDeductions">$0.00</strong>
+            </div>
+            <div class="net-card">
+              <span>Net pay</span>
+              <strong id="payslipNet">$0.00</strong>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
